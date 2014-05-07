@@ -3,7 +3,9 @@ package twik
 import (
 	"errors"
 	"fmt"
-	"launchpad.net/twik/ast"
+	"math/big"
+
+	"github.com/cmars/twik/ast"
 )
 
 var defaultGlobals = []struct {
@@ -30,6 +32,14 @@ var defaultGlobals = []struct {
 	//{"for", forFn},
 }
 
+func newRatZero() *big.Rat {
+	return big.NewRat(int64(0), int64(1))
+}
+
+func newRatOne() *big.Rat {
+	return big.NewRat(int64(1), int64(1))
+}
+
 func errorFn(args []interface{}) (value interface{}, err error) {
 	if len(args) == 1 {
 		if s, ok := args[0].(string); ok {
@@ -43,6 +53,7 @@ func eqFn(args []interface{}) (value interface{}, err error) {
 	if len(args) != 2 {
 		return nil, errors.New("== expects two values")
 	}
+	// TODO: rat compare
 	return args[0] == args[1], nil
 }
 
@@ -50,119 +61,74 @@ func neFn(args []interface{}) (value interface{}, err error) {
 	if len(args) != 2 {
 		return nil, errors.New("!= expects two values")
 	}
+	// TODO: rat compare
 	return args[0] != args[1], nil
 }
 
 func plusFn(args []interface{}) (value interface{}, err error) {
-	var resi int64
-	var resf float64
-	var f bool
+	res := newRatZero()
 	for _, arg := range args {
 		switch arg := arg.(type) {
-		case int64:
-			resi += arg
-			resf += float64(arg)
-		case float64:
-			resf += arg
-			f = true
+		case *big.Rat:
+			res.Add(res, arg)
 		default:
 			return nil, fmt.Errorf("cannot sum %#v", arg)
 		}
 	}
-	if f {
-		return resf, nil
-	}
-	return resi, nil
+	return res, nil
 }
 
 func minusFn(args []interface{}) (value interface{}, err error) {
 	if len(args) == 0 {
 		return nil, fmt.Errorf(`function "-" takes one or more arguments`)
 	}
-	var resi int64
-	var resf float64
-	var f bool
+	var res *big.Rat
 	for i, arg := range args {
 		switch arg := arg.(type) {
-		case int64:
+		case *big.Rat:
 			if i == 0 && len(args) > 1 {
-				resi = arg
-				resf = float64(arg)
+				res = newRatZero().Set(arg)
 			} else {
-				resi -= arg
-				resf -= float64(arg)
+				res.Sub(res, arg)
 			}
-		case float64:
-			if i == 0 && len(args) > 1 {
-				resf = arg
-			} else {
-				resf -= arg
-			}
-			f = true
 		default:
 			return nil, fmt.Errorf("cannot subtract %#v", arg)
 		}
 	}
-	if f {
-		return resf, nil
-	}
-	return resi, nil
+	return res, nil
 }
 
 func mulFn(args []interface{}) (value interface{}, err error) {
-	var resi = int64(1)
-	var resf = float64(1)
-	var f bool
+	var res = newRatOne()
 	for _, arg := range args {
 		switch arg := arg.(type) {
-		case int64:
-			resi *= arg
-			resf *= float64(arg)
-		case float64:
-			resf *= arg
-			f = true
+		case *big.Rat:
+			res.Mul(res, arg)
 		default:
 			return nil, fmt.Errorf("cannot multiply %#v", arg)
 		}
 	}
-	if f {
-		return resf, nil
-	}
-	return resi, nil
+	return res, nil
 }
 
 func divFn(args []interface{}) (value interface{}, err error) {
 	if len(args) < 2 {
 		return nil, fmt.Errorf(`function "/" takes two or more arguments`)
 	}
-	var resi int64
-	var resf float64
-	var f bool
+	var res *big.Rat
 	for i, arg := range args {
 		switch arg := arg.(type) {
-		case int64:
+		case *big.Rat:
 			if i == 0 && len(args) > 1 {
-				resi = arg
-				resf = float64(arg)
+				res = newRatZero().Set(arg)
 			} else {
-				resi /= arg
-				resf /= float64(arg)
+				res.Quo(res, arg)
 			}
-		case float64:
-			if i == 0 && len(args) > 1 {
-				resf = float64(arg)
-			} else {
-				resf /= arg
-			}
-			f = true
 		default:
 			return nil, fmt.Errorf("cannot divide with %#v", arg)
 		}
 	}
-	if f {
-		return resf, nil
-	}
-	return resi, nil
+	return res, nil
 }
 
 func andFn(scope *Scope, args []ast.Node) (value interface{}, err error) {

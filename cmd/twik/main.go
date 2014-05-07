@@ -1,14 +1,17 @@
 package main
 
 import (
-	"launchpad.net/twik"
-	"code.google.com/p/go.crypto/ssh/terminal"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"reflect"
 	"strings"
+
+	"code.google.com/p/go.crypto/ssh/terminal"
+
+	"github.com/cmars/twik"
 )
 
 func main() {
@@ -96,7 +99,12 @@ func run() error {
 			if reflect.TypeOf(value).Kind() == reflect.Func {
 				fmt.Println("#func")
 			} else {
-				fmt.Printf("%#v\n", value)
+				switch v := value.(type) {
+				case *big.Rat:
+					fmt.Printf("%s\n", v.String())
+				default:
+					fmt.Printf("%#v\n", value)
+				}
 			}
 		}
 	}

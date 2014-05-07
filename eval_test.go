@@ -2,9 +2,11 @@ package twik_test
 
 import (
 	"fmt"
-	. "launchpad.net/gocheck"
-	"launchpad.net/twik"
 	"testing"
+
+	. "launchpad.net/gocheck"
+
+	"github.com/cmars/twik"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -233,7 +235,6 @@ var evalList = []struct {
 		5.0,
 	},
 
-
 	// ==
 	{
 		`(== "a" "a")`,
@@ -287,7 +288,6 @@ var evalList = []struct {
 		`(!=)`,
 		errorf("twik source:1:2: != expects two values"),
 	},
-
 
 	// or
 	{

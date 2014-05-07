@@ -2,7 +2,8 @@ package twik_test
 
 import (
 	. "launchpad.net/gocheck"
-	"launchpad.net/twik"
+
+	"github.com/cmars/twik"
 )
 
 func (S) BenchmarkParse0(c *C) {
@@ -28,7 +29,6 @@ func (S) BenchmarkEval0(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(value, Equals, int64(0))
 }
-
 
 func (S) BenchmarkParseFib(c *C) {
 	fset := twik.NewFileSet()

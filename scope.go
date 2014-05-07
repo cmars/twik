@@ -8,7 +8,8 @@ package twik
 
 import (
 	"fmt"
-	"launchpad.net/twik/ast"
+
+	"github.com/cmars/twik/ast"
 )
 
 // Scope is an environment where twik logic may be evaluated in.
@@ -98,9 +99,7 @@ func (s *Scope) Eval(node ast.Node) (value interface{}, err error) {
 			return nil, s.errorAt(node, err)
 		}
 		return value, nil
-	case *ast.Int:
-		return node.Value, nil
-	case *ast.Float:
+	case *ast.Bignum:
 		return node.Value, nil
 	case *ast.String:
 		return node.Value, nil

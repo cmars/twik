@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"strconv"
 	"strings"
 	"unicode"
@@ -21,25 +22,15 @@ type Node interface {
 	End() Pos
 }
 
-// Int represents an integer literal in parsed twik code.
-type Int struct {
+// Bignum represents an arbitrarily-sized rational literal in parsed twik code.
+type Bignum struct {
 	Input    string
 	InputPos Pos
-	Value    int64
+	Value    *big.Rat
 }
 
-func (l *Int) Pos() Pos { return l.InputPos }
-func (l *Int) End() Pos { return l.InputPos + Pos(len(l.Input)) }
-
-// Float represents a float literal in parsed twik code.
-type Float struct {
-	Input    string
-	InputPos Pos
-	Value    float64
-}
-
-func (l *Float) Pos() Pos { return l.InputPos }
-func (l *Float) End() Pos { return l.InputPos + Pos(len(l.Input)) }
+func (l *Bignum) Pos() Pos { return l.InputPos }
+func (l *Bignum) End() Pos { return l.InputPos + Pos(len(l.Input)) }
 
 // String represents a string literal in parsed twik code.
 type String struct {
@@ -195,30 +186,19 @@ func (p *parser) next() (Node, error) {
 
 	// int, float
 	if r >= '0' && r <= '9' {
-		dot := false
 		for p.i < len(p.code) {
 			r, size = utf8.DecodeRuneInString(p.code[p.i:])
-			if r == '.' {
-				dot = true
-			} else if r == ')' || unicode.IsSpace(r) {
+			if r == ')' || unicode.IsSpace(r) {
 				break
 			}
 			p.i += size
 		}
 		input := p.code[start:p.i]
-		if dot {
-			value, err := strconv.ParseFloat(input, 64)
-			if err != nil {
-				return nil, p.ierrorf(start, "invalid float literal: %s", input)
-			}
-			return &Float{Input: input, InputPos: p.pos(start), Value: value}, nil
-		} else {
-			value, err := strconv.ParseInt(input, 0, 64)
-			if err != nil {
-				return nil, p.ierrorf(start, "invalid int literal: %s", input)
-			}
-			return &Int{Input: input, InputPos: p.pos(start), Value: value}, nil
+		value, ok := big.NewRat(int64(0), int64(1)).SetString(input)
+		if !ok {
+			return nil, p.ierrorf(start, "invalid rational literal: %s", input)
 		}
+		return &Bignum{Input: input, InputPos: p.pos(start), Value: value}, nil
 	}
 
 	if r == '\'' {
@@ -241,7 +221,7 @@ func (p *parser) next() (Node, error) {
 		if r != '\'' {
 			return nil, p.ierrorf(start, "unclosed single quote")
 		}
-		return &Int{Input: p.code[start:p.i], InputPos: p.pos(start), Value: int64(c)}, nil
+		return &Bignum{Input: p.code[start:p.i], InputPos: p.pos(start), Value: big.NewRat(int64(c), int64(1))}, nil
 	}
 
 	// string
@@ -286,7 +266,7 @@ func NewFileSet() *FileSet {
 	return &FileSet{}
 }
 
-// FileSet holds positioning information for parsed twik code. 
+// FileSet holds positioning information for parsed twik code.
 type FileSet struct {
 	files []file
 }
